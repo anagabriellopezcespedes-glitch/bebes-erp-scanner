@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+  <title>BEBES ERP - Escáner QR</title>
+
+  <!-- Lector QR -->
+  <script
+    src="https://unpkg.com/html5-qrcode"
+    type="text/javascript">
+  </script>
+
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+
+      margin: 0;
+
+      min-height: 100vh;
+
+      font-family:
+        Arial,
+        sans-serif;
+
+      background:
+        #f1f5f9;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      padding:
+        20px;
+
+    }
+
+
+    .contenedor {
+
+      width:
+        min(520px, 100%);
+
+      background:
+        white;
+
+      border-radius:
+        20px;
+
+      padding:
+        24px;
+
+      box-shadow:
+        0 15px 40px
+        rgba(0,0,0,.15);
+
+      text-align:
+        center;
+
+    }
+
+
+    h1 {
+
+      margin:
+        0 0 8px;
+
+      color:
+        #0f172a;
+
+      font-size:
+        26px;
+
+    }
+
+
+    .subtitulo {
+
+      margin:
+        0 0 20px;
+
+      color:
+        #64748b;
+
+    }
+
+
+    #reader {
+
+      width:
+        100%;
+
+      max-width:
+        450px;
+
+      margin:
+        0 auto;
+
+      overflow:
+        hidden;
+
+      border-radius:
+        16px;
+
+      background:
+        #000;
+
+    }
+
+
+    #estado {
+
+      margin-top:
+        18px;
+
+      min-height:
+        24px;
+
+      font-weight:
+        600;
+
+      color:
+        #475569;
+
+    }
+
+
+    #resultado {
+
+      display:
+        none;
+
+      margin-top:
+        15px;
+
+      padding:
+        15px;
+
+      border-radius:
+        12px;
+
+      background:
+        #f0fdf4;
+
+      color:
+        #166534;
+
+      font-size:
+        18px;
+
+      font-weight:
+        700;
+
+    }
+
+
+    .botones {
+
+      display:
+        flex;
+
+      gap:
+        10px;
+
+      margin-top:
+        20px;
+
+    }
+
+
+    button {
+
+      flex:
+        1;
+
+      border:
+        0;
+
+      border-radius:
+        10px;
+
+      padding:
+        14px;
+
+      font-size:
+        15px;
+
+      font-weight:
+        600;
+
+      cursor:
+        pointer;
+
+    }
+
+
+    #btnIniciar {
+
+      background:
+        #2563eb;
+
+      color:
+        white;
+
+    }
+
+
+    #btnCerrar {
+
+      background:
+        #e2e8f0;
+
+      color:
+        #334155;
+
+    }
+
+
+    button:disabled {
+
+      opacity:
+        .6;
+
+      cursor:
+        not-allowed;
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <div class="contenedor">
+
+
+    <h1>
+      📦 BEBES ERP
+    </h1>
+
+
+    <p class="subtitulo">
+      Escanear código QR
+    </p>
+
+
+    <div id="reader"></div>
+
+
+    <div id="estado">
+      Pulsa "Iniciar cámara".
+    </div>
+
+
+    <div id="resultado"></div>
+
+
+    <div class="botones">
+
+
+      <button
+        id="btnIniciar"
+        type="button">
+
+        📷 Iniciar cámara
+
+      </button>
+
+
+      <button
+        id="btnCerrar"
+        type="button">
+
+        ✕ Cerrar
+
+      </button>
+
+
+    </div>
+
+
+  </div>
+
+
+<script>
+
+
+// =====================================================
+// VARIABLES
+// =====================================================
+
+let scanner = null;
+
+let leyendo = false;
+
+let codigoDetectado = false;
+
+
+// =====================================================
+// ELEMENTOS
+// =====================================================
+
+const estado =
+  document.getElementById(
+    'estado'
+  );
+
+
+const resultado =
+  document.getElementById(
+    'resultado'
+  );
+
+
+const btnIniciar =
+  document.getElementById(
+    'btnIniciar'
+  );
+
+
+const btnCerrar =
+  document.getElementById(
+    'btnCerrar'
+  );
+
+
+// =====================================================
+// INICIAR
+// =====================================================
+
+btnIniciar.addEventListener(
+  'click',
+  iniciarCamara
+);
+
+
+// =====================================================
+// CERRAR
+// =====================================================
+
+btnCerrar.addEventListener(
+  'click',
+  cerrarScanner
+);
+
+
+// =====================================================
+// INICIAR CÁMARA
+// =====================================================
+
+async function iniciarCamara() {
+
+  if (leyendo) {
+
+    return;
+
+  }
+
+
+  codigoDetectado =
+    false;
+
+
+  estado.textContent =
+    'Solicitando acceso a la cámara...';
+
+
+  try {
+
+    scanner =
+      new Html5Qrcode(
+        'reader'
+      );
+
+
+    const configuracion = {
+
+      fps:
+        10,
+
+      qrbox:
+        function(
+          ancho,
+          alto
+        ) {
+
+          const lado =
+            Math.min(
+              ancho,
+              alto
+            ) * 0.70;
+
+          return {
+
+            width:
+              Math.floor(
+                lado
+              ),
+
+            height:
+              Math.floor(
+                lado
+              )
+
+          };
+
+        },
+
+      aspectRatio:
+        1.0
+
+    };
+
+
+    await scanner.start(
+
+      {
+        facingMode:
+          {
+            ideal:
+              'environment'
+          }
+      },
+
+      configuracion,
+
+      function(
+        texto
+      ) {
+
+        procesarQR(
+          texto
+        );
+
+      },
+
+      function(
+        error
+      ) {
+
+        // Normal mientras busca.
+        // No mostramos errores aquí.
+
+      }
+
+    );
+
+
+    leyendo =
+      true;
+
+
+    btnIniciar.disabled =
+      true;
+
+
+    estado.textContent =
+      '📷 Buscando código QR...';
+
+
+    console.log(
+      'CÁMARA INICIADA CORRECTAMENTE'
+    );
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      'ERROR DE CÁMARA:',
+      error
+    );
+
+
+    estado.textContent =
+      '❌ No se pudo iniciar la cámara.';
+
+
+    alert(
+      'No se pudo iniciar la cámara.\n\n' +
+      'Comprueba que el navegador tenga permiso para utilizarla.'
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// PROCESAR QR
+// =====================================================
+
+async function procesarQR(
+  texto
+) {
+
+  if (
+    codigoDetectado
+  ) {
+
+    return;
+
+  }
+
+
+  const codigo =
+    String(
+      texto || ''
+    ).trim();
+
+
+  if (!codigo) {
+
+    return;
+
+  }
+
+
+  codigoDetectado =
+    true;
+
+
+  console.log(
+    '================================'
+  );
+
+
+  console.log(
+    'QR DETECTADO:'
+  );
+
+
+  console.log(
+    codigo
+  );
+
+
+  console.log(
+    '================================'
+  );
+
+
+  estado.textContent =
+    '✅ Código QR detectado.';
+
+
+  resultado.style.display =
+    'block';
+
+
+  resultado.textContent =
+    'Código: ' +
+    codigo;
+
+
+  await detenerScanner();
+
+
+  /*
+   * Por ahora solo mostramos
+   * el código.
+   *
+   * Después conectaremos esta página
+   * con BEBES ERP.
+   */
+
+
+  setTimeout(
+    function() {
+
+      estado.textContent =
+        'Código leído correctamente.';
+
+    },
+    500
+  );
+
+}
+
+
+// =====================================================
+// DETENER
+// =====================================================
+
+async function detenerScanner() {
+
+  if (
+    !scanner
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    if (
+      leyendo
+    ) {
+
+      await scanner.stop();
+
+    }
+
+
+    scanner.clear();
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      'ERROR DETENIENDO:',
+      error
+    );
+
+  }
+
+
+  leyendo =
+    false;
+
+
+  btnIniciar.disabled =
+    false;
+
+}
+
+
+// =====================================================
+// CERRAR
+// =====================================================
+
+async function cerrarScanner() {
+
+  await detenerScanner();
+
+
+  /*
+   * Cuando abramos este lector
+   * desde el ERP podremos regresar
+   * automáticamente.
+   */
+
+  if (
+    window.history.length > 1
+  ) {
+
+    window.history.back();
+
+  }
+
+}
+
+
+</script>
+
+
+</body>
+</html>
