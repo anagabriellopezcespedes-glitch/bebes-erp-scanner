@@ -370,21 +370,86 @@ btnCerrar.addEventListener(
 async function iniciarCamara() {
 
   if (leyendo) {
-
     return;
-
   }
 
-
-  codigoDetectado =
-    false;
-
+  codigoDetectado = false;
 
   estado.textContent =
     'Solicitando acceso a la cámara...';
 
-
   try {
+
+    console.log('================================');
+    console.log('INICIANDO CÁMARA');
+    console.log('================================');
+
+
+    // ============================================
+    // OBTENER CÁMARAS DISPONIBLES
+    // ============================================
+
+    const camaras =
+      await Html5Qrcode.getCameras();
+
+
+    console.log(
+      'CÁMARAS ENCONTRADAS:',
+      camaras
+    );
+
+
+    if (
+      !camaras ||
+      camaras.length === 0
+    ) {
+
+      throw new Error(
+        'El navegador no encontró ninguna cámara.'
+      );
+
+    }
+
+
+    // ============================================
+    // BUSCAR CÁMARA TRASERA
+    // ============================================
+
+    let camaraSeleccionada =
+      camaras.find(
+        function(camara) {
+
+          return /back|rear|environment|trasera/i
+            .test(
+              camara.label || ''
+            );
+
+        }
+      );
+
+
+    // ============================================
+    // SI NO ENCUENTRA POR NOMBRE,
+    // USAR LA ÚLTIMA CÁMARA
+    // ============================================
+
+    if (!camaraSeleccionada) {
+
+      camaraSeleccionada =
+        camaras[camaras.length - 1];
+
+    }
+
+
+    console.log(
+      'CÁMARA SELECCIONADA:',
+      camaraSeleccionada
+    );
+
+
+    // ============================================
+    // CREAR LECTOR
+    // ============================================
 
     scanner =
       new Html5Qrcode(
@@ -392,60 +457,67 @@ async function iniciarCamara() {
       );
 
 
+    // ============================================
+    // CONFIGURACIÓN
+    // ============================================
+
     const configuracion = {
 
-      fps:
-        10,
+      fps: 10,
 
-      qrbox:
-        function(
-          ancho,
-          alto
-        ) {
+      qrbox: function(
+        ancho,
+        alto
+      ) {
 
-          const lado =
+        const lado =
+          Math.floor(
             Math.min(
               ancho,
               alto
-            ) * 0.70;
+            ) * 0.70
+          );
 
-          return {
+        return {
 
-            width:
-              Math.floor(
-                lado
-              ),
+          width: lado,
 
-            height:
-              Math.floor(
-                lado
-              )
+          height: lado
 
-          };
+        };
 
-        },
-
-      aspectRatio:
-        1.0
+      }
 
     };
 
 
+    // ============================================
+    // INICIAR CON ID REAL DE CÁMARA
+    // ============================================
+
     await scanner.start(
 
-      {
-        facingMode:
-          {
-            ideal:
-              'environment'
-          }
-      },
+      camaraSeleccionada.id,
 
       configuracion,
 
-      function(
-        texto
-      ) {
+
+      // ==========================================
+      // QR DETECTADO
+      // ==========================================
+
+      function(texto) {
+
+        if (codigoDetectado) {
+          return;
+        }
+
+        codigoDetectado = true;
+
+        console.log(
+          'QR DETECTADO:',
+          texto
+        );
 
         procesarQR(
           texto
@@ -453,43 +525,65 @@ async function iniciarCamara() {
 
       },
 
-      function(
-        error
-      ) {
 
-        // Normal mientras busca.
-        // No mostramos errores aquí.
+      // ==========================================
+      // ERROR NORMAL DE LECTURA
+      // ==========================================
+
+      function(errorMessage) {
+
+        // No mostrar errores mientras busca.
 
       }
 
     );
 
 
-    leyendo =
-      true;
+    // ============================================
+    // CÁMARA FUNCIONANDO
+    // ============================================
 
+    leyendo = true;
 
-    btnIniciar.disabled =
-      true;
-
+    btnIniciar.disabled = true;
 
     estado.textContent =
-      '📷 Buscando código QR...';
+      '📷 Cámara activa. Buscando código QR...';
 
 
     console.log(
-      'CÁMARA INICIADA CORRECTAMENTE'
+      '================================'
     );
 
+    console.log(
+      '✅ CÁMARA INICIADA CORRECTAMENTE'
+    );
 
-  } catch (
-    error
-  ) {
+    console.log(
+      '================================'
+    );
+
+  }
+
+  catch(error) {
 
     console.error(
-      'ERROR DE CÁMARA:',
+      '================================'
+    );
+
+    console.error(
+      '❌ ERROR DE CÁMARA:',
       error
     );
+
+    console.error(
+      '================================'
+    );
+
+
+    leyendo = false;
+
+    btnIniciar.disabled = false;
 
 
     estado.textContent =
@@ -498,13 +592,15 @@ async function iniciarCamara() {
 
     alert(
       'No se pudo iniciar la cámara.\n\n' +
-      'Comprueba que el navegador tenga permiso para utilizarla.'
+      (
+        error.message ||
+        error
+      )
     );
 
   }
 
 }
-
 
 // =====================================================
 // PROCESAR QR
