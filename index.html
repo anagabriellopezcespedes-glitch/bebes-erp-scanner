@@ -463,33 +463,40 @@ async function iniciarCamara() {
 
     const configuracion = {
 
-      fps: 10,
+  fps: 15,
 
-      qrbox: function(
-        ancho,
-        alto
-      ) {
+  qrbox: function(
+    ancho,
+    alto
+  ) {
 
-        const lado =
-          Math.floor(
-            Math.min(
-              ancho,
-              alto
-            ) * 0.70
-          );
+    const lado =
+      Math.floor(
+        Math.min(
+          ancho,
+          alto
+        ) * 0.85
+      );
 
-        return {
+    return {
 
-          width: lado,
+      width: lado,
 
-          height: lado
-
-        };
-
-      }
+      height: lado
 
     };
 
+  },
+
+  aspectRatio: 1.0,
+
+  disableFlip: false,
+
+  formatsToSupport: [
+    Html5QrcodeSupportedFormats.QR_CODE
+  ]
+
+};
 
     // ============================================
     // INICIAR CON ID REAL DE CÁMARA
