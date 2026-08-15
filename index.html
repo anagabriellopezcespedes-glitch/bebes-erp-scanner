@@ -11,10 +11,12 @@
 
   <title>BEBES ERP - Escáner QR</title>
 
-  <!-- Lector QR -->
+  <!-- ==========================================
+       MOTOR QR
+       ========================================== -->
+
   <script
-    src="https://unpkg.com/html5-qrcode"
-    type="text/javascript">
+    src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js">
   </script>
 
 
@@ -23,6 +25,7 @@
     * {
       box-sizing: border-box;
     }
+
 
     body {
 
@@ -98,10 +101,16 @@
       color:
         #64748b;
 
+      font-size:
+        18px;
+
     }
 
 
-    #reader {
+    #visor {
+
+      position:
+        relative;
 
       width:
         100%;
@@ -109,17 +118,125 @@
       max-width:
         450px;
 
+      aspect-ratio:
+        3 / 4;
+
       margin:
-        0 auto;
+        auto;
+
+      background:
+        #000;
+
+      border-radius:
+        18px;
 
       overflow:
         hidden;
 
+    }
+
+
+    #video {
+
+      width:
+        100%;
+
+      height:
+        100%;
+
+      object-fit:
+        cover;
+
+      display:
+        block;
+
+    }
+
+
+    #canvas {
+
+      display:
+        none;
+
+    }
+
+
+    /* ==========================================
+       MARCO DEL ESCÁNER
+       ========================================== */
+
+    .marco {
+
+      position:
+        absolute;
+
+      width:
+        70%;
+
+      aspect-ratio:
+        1 / 1;
+
+      left:
+        15%;
+
+      top:
+        15%;
+
+      border:
+        4px solid
+        rgba(255,255,255,.95);
+
       border-radius:
-        16px;
+        12px;
+
+      pointer-events:
+        none;
+
+    }
+
+
+    .linea {
+
+      position:
+        absolute;
+
+      left:
+        5%;
+
+      width:
+        90%;
+
+      height:
+        3px;
 
       background:
-        #000;
+        #22c55e;
+
+      top:
+        10%;
+
+      animation:
+        moverLinea
+        2s
+        linear
+        infinite;
+
+    }
+
+
+    @keyframes moverLinea {
+
+      0% {
+        top: 10%;
+      }
+
+      50% {
+        top: 88%;
+      }
+
+      100% {
+        top: 10%;
+      }
 
     }
 
@@ -130,13 +247,16 @@
         18px;
 
       min-height:
-        24px;
+        25px;
 
       font-weight:
-        600;
+        700;
 
       color:
         #475569;
+
+      font-size:
+        17px;
 
     }
 
@@ -150,7 +270,7 @@
         15px;
 
       padding:
-        15px;
+        16px;
 
       border-radius:
         12px;
@@ -162,7 +282,7 @@
         #166534;
 
       font-size:
-        18px;
+        20px;
 
       font-weight:
         700;
@@ -196,13 +316,13 @@
         10px;
 
       padding:
-        14px;
+        15px;
 
       font-size:
         15px;
 
       font-weight:
-        600;
+        700;
 
       cursor:
         pointer;
@@ -235,7 +355,7 @@
     button:disabled {
 
       opacity:
-        .6;
+        .55;
 
       cursor:
         not-allowed;
@@ -250,55 +370,74 @@
 <body>
 
 
-  <div class="contenedor">
+<div class="contenedor">
 
 
-    <h1>
-      📦 BEBES ERP
-    </h1>
+  <h1>
+    📦 BEBES ERP
+  </h1>
 
 
-    <p class="subtitulo">
-      Escanear código QR
-    </p>
+  <p class="subtitulo">
+    Escanear código QR
+  </p>
 
 
-    <div id="reader"></div>
+  <div id="visor">
+
+    <video
+      id="video"
+      autoplay
+      playsinline
+      muted>
+    </video>
 
 
-    <div id="estado">
-      Pulsa "Iniciar cámara".
-    </div>
+    <div class="marco">
 
-
-    <div id="resultado"></div>
-
-
-    <div class="botones">
-
-
-      <button
-        id="btnIniciar"
-        type="button">
-
-        📷 Iniciar cámara
-
-      </button>
-
-
-      <button
-        id="btnCerrar"
-        type="button">
-
-        ✕ Cerrar
-
-      </button>
-
+      <div class="linea"></div>
 
     </div>
+
+  </div>
+
+
+  <canvas id="canvas"></canvas>
+
+
+  <div id="estado">
+    Pulsa "Iniciar cámara".
+  </div>
+
+
+  <div id="resultado"></div>
+
+
+  <div class="botones">
+
+
+    <button
+      id="btnIniciar"
+      type="button">
+
+      📷 Iniciar cámara
+
+    </button>
+
+
+    <button
+      id="btnCerrar"
+      type="button">
+
+      ✕ Cerrar
+
+    </button>
 
 
   </div>
+
+
+</div>
 
 
 <script>
@@ -308,16 +447,44 @@
 // VARIABLES
 // =====================================================
 
-let scanner = null;
+let stream =
+  null;
 
-let leyendo = false;
+let escaneando =
+  false;
 
-let codigoDetectado = false;
+let codigoDetectado =
+  false;
+
+let animationFrame =
+  null;
 
 
 // =====================================================
 // ELEMENTOS
 // =====================================================
+
+const video =
+  document.getElementById(
+    'video'
+  );
+
+
+const canvas =
+  document.getElementById(
+    'canvas'
+  );
+
+
+const contexto =
+  canvas.getContext(
+    '2d',
+    {
+      willReadFrequently:
+        true
+    }
+  );
+
 
 const estado =
   document.getElementById(
@@ -369,228 +536,128 @@ btnCerrar.addEventListener(
 
 async function iniciarCamara() {
 
-  if (leyendo) {
+
+  if (
+    escaneando
+  ) {
+
     return;
+
   }
 
-  codigoDetectado = false;
+
+  codigoDetectado =
+    false;
+
 
   estado.textContent =
     'Solicitando acceso a la cámara...';
 
+
   try {
 
-    console.log('================================');
-    console.log('INICIANDO CÁMARA');
-    console.log('================================');
 
-
-    // ============================================
-    // OBTENER CÁMARAS DISPONIBLES
-    // ============================================
-
-    const camaras =
-      await Html5Qrcode.getCameras();
+    console.log(
+      '================================'
+    );
 
 
     console.log(
-      'CÁMARAS ENCONTRADAS:',
-      camaras
+      'INICIANDO CÁMARA'
     );
-
-
-    if (
-      !camaras ||
-      camaras.length === 0
-    ) {
-
-      throw new Error(
-        'El navegador no encontró ninguna cámara.'
-      );
-
-    }
-
-
-    // ============================================
-    // BUSCAR CÁMARA TRASERA
-    // ============================================
-
-    let camaraSeleccionada =
-      camaras.find(
-        function(camara) {
-
-          return /back|rear|environment|trasera/i
-            .test(
-              camara.label || ''
-            );
-
-        }
-      );
-
-
-    // ============================================
-    // SI NO ENCUENTRA POR NOMBRE,
-    // USAR LA ÚLTIMA CÁMARA
-    // ============================================
-
-    if (!camaraSeleccionada) {
-
-      camaraSeleccionada =
-        camaras[camaras.length - 1];
-
-    }
 
 
     console.log(
-      'CÁMARA SELECCIONADA:',
-      camaraSeleccionada
+      '================================'
     );
 
 
-    // ============================================
-    // CREAR LECTOR
-    // ============================================
+    // =================================================
+    // SOLICITAR CÁMARA TRASERA
+    // =================================================
 
-    scanner =
-      new Html5Qrcode(
-        'reader'
-      );
+    stream =
+      await navigator.mediaDevices.getUserMedia({
 
+        video: {
 
-    // ============================================
-    // CONFIGURACIÓN
-    // ============================================
+          facingMode: {
+            ideal:
+              'environment'
+          },
 
-    const configuracion = {
+          width: {
+            ideal:
+              1920
+          },
 
-  fps: 15,
+          height: {
+            ideal:
+              1080
+          }
 
-  qrbox: function(
-    ancho,
-    alto
-  ) {
+        },
 
-    const lado =
-      Math.floor(
-        Math.min(
-          ancho,
-          alto
-        ) * 0.85
-      );
+        audio:
+          false
 
-    return {
-
-      width: lado,
-
-      height: lado
-
-    };
-
-  },
-
-  aspectRatio: 1.0,
-
-  disableFlip: false,
-
-  formatsToSupport: [
-    Html5QrcodeSupportedFormats.QR_CODE
-  ]
-
-};
-
-    // ============================================
-    // INICIAR CON ID REAL DE CÁMARA
-    // ============================================
-
-    await scanner.start(
-
-      camaraSeleccionada.id,
-
-      configuracion,
+      });
 
 
-      // ==========================================
-      // QR DETECTADO
-      // ==========================================
+    // =================================================
+    // ASIGNAR STREAM
+    // =================================================
 
-      function(texto) {
-
-        if (codigoDetectado) {
-          return;
-        }
-
-        codigoDetectado = true;
-
-        console.log(
-          'QR DETECTADO:',
-          texto
-        );
-
-        procesarQR(
-          texto
-        );
-
-      },
+    video.srcObject =
+      stream;
 
 
-      // ==========================================
-      // ERROR NORMAL DE LECTURA
-      // ==========================================
-
-      function(errorMessage) {
-
-        // No mostrar errores mientras busca.
-
-      }
-
-    );
+    await video.play();
 
 
-    // ============================================
-    // CÁMARA FUNCIONANDO
-    // ============================================
+    escaneando =
+      true;
 
-    leyendo = true;
 
-    btnIniciar.disabled = true;
+    btnIniciar.disabled =
+      true;
+
 
     estado.textContent =
       '📷 Cámara activa. Buscando código QR...';
 
 
     console.log(
-      '================================'
+      'CÁMARA ACTIVA'
     );
 
-    console.log(
-      '✅ CÁMARA INICIADA CORRECTAMENTE'
-    );
 
     console.log(
-      '================================'
+      'RESOLUCIÓN:',
+      video.videoWidth,
+      'x',
+      video.videoHeight
     );
+
+
+    // =================================================
+    // COMENZAR LECTURA
+    // =================================================
+
+    escanearFrame();
+
 
   }
 
-  catch(error) {
+  catch (
+    error
+  ) {
+
 
     console.error(
-      '================================'
-    );
-
-    console.error(
-      '❌ ERROR DE CÁMARA:',
+      'ERROR DE CÁMARA:',
       error
     );
-
-    console.error(
-      '================================'
-    );
-
-
-    leyendo = false;
-
-    btnIniciar.disabled = false;
 
 
     estado.textContent =
@@ -609,6 +676,167 @@ async function iniciarCamara() {
 
 }
 
+
+// =====================================================
+// ESCANEAR CUADRO
+// =====================================================
+
+function escanearFrame() {
+
+
+  if (
+    !escaneando ||
+    codigoDetectado
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    video.readyState <
+    video.HAVE_ENOUGH_DATA
+  ) {
+
+    animationFrame =
+      requestAnimationFrame(
+        escanearFrame
+      );
+
+    return;
+
+  }
+
+
+  const ancho =
+    video.videoWidth;
+
+
+  const alto =
+    video.videoHeight;
+
+
+  if (
+    !ancho ||
+    !alto
+  ) {
+
+    animationFrame =
+      requestAnimationFrame(
+        escanearFrame
+      );
+
+    return;
+
+  }
+
+
+  // =================================================
+  // USAR RESOLUCIÓN COMPLETA
+  // =================================================
+
+  canvas.width =
+    ancho;
+
+
+  canvas.height =
+    alto;
+
+
+  contexto.drawImage(
+
+    video,
+
+    0,
+    0,
+
+    ancho,
+    alto
+
+  );
+
+
+  const imagen =
+    contexto.getImageData(
+
+      0,
+      0,
+
+      ancho,
+      alto
+
+    );
+
+
+  // =================================================
+  // DECODIFICAR QR
+  // =================================================
+
+  const codigo =
+    jsQR(
+
+      imagen.data,
+
+      imagen.width,
+
+      imagen.height,
+
+      {
+
+        inversionAttempts:
+          'attemptBoth'
+
+      }
+
+    );
+
+
+  if (
+    codigo &&
+    codigo.data
+  ) {
+
+
+    console.log(
+      '================================'
+    );
+
+
+    console.log(
+      '✅ QR DETECTADO'
+    );
+
+
+    console.log(
+      'CÓDIGO:',
+      codigo.data
+    );
+
+
+    console.log(
+      '================================'
+    );
+
+
+    procesarQR(
+      codigo.data
+    );
+
+
+    return;
+
+  }
+
+
+  animationFrame =
+    requestAnimationFrame(
+      escanearFrame
+    );
+
+}
+
+
 // =====================================================
 // PROCESAR QR
 // =====================================================
@@ -616,6 +844,7 @@ async function iniciarCamara() {
 async function procesarQR(
   texto
 ) {
+
 
   if (
     codigoDetectado
@@ -628,11 +857,14 @@ async function procesarQR(
 
   const codigo =
     String(
-      texto || ''
+      texto ||
+      ''
     ).trim();
 
 
-  if (!codigo) {
+  if (
+    !codigo
+  ) {
 
     return;
 
@@ -641,26 +873,6 @@ async function procesarQR(
 
   codigoDetectado =
     true;
-
-
-  console.log(
-    '================================'
-  );
-
-
-  console.log(
-    'QR DETECTADO:'
-  );
-
-
-  console.log(
-    codigo
-  );
-
-
-  console.log(
-    '================================'
-  );
 
 
   estado.textContent =
@@ -676,23 +888,28 @@ async function procesarQR(
     codigo;
 
 
-  await detenerScanner();
+  // =================================================
+  // DETENER
+  // =================================================
+
+  detenerCamara();
 
 
-  /*
-   * Por ahora solo mostramos
-   * el código.
-   *
-   * Después conectaremos esta página
-   * con BEBES ERP.
-   */
+  console.log(
+    'CÓDIGO FINAL:',
+    codigo
+  );
 
+
+  // =================================================
+  // AQUÍ DESPUÉS CONECTAREMOS CON BEBES ERP
+  // =================================================
 
   setTimeout(
     function() {
 
       estado.textContent =
-        'Código leído correctamente.';
+        '✅ Código leído correctamente.';
 
     },
     500
@@ -702,48 +919,52 @@ async function procesarQR(
 
 
 // =====================================================
-// DETENER
+// DETENER CÁMARA
 // =====================================================
 
-async function detenerScanner() {
+function detenerCamara() {
+
+
+  escaneando =
+    false;
+
 
   if (
-    !scanner
+    animationFrame
   ) {
 
-    return;
-
-  }
-
-
-  try {
-
-    if (
-      leyendo
-    ) {
-
-      await scanner.stop();
-
-    }
-
-
-    scanner.clear();
-
-
-  } catch (
-    error
-  ) {
-
-    console.error(
-      'ERROR DETENIENDO:',
-      error
+    cancelAnimationFrame(
+      animationFrame
     );
 
+    animationFrame =
+      null;
+
   }
 
 
-  leyendo =
-    false;
+  if (
+    stream
+  ) {
+
+    stream
+      .getTracks()
+      .forEach(
+        function(track) {
+
+          track.stop();
+
+        }
+      );
+
+    stream =
+      null;
+
+  }
+
+
+  video.srcObject =
+    null;
 
 
   btnIniciar.disabled =
@@ -756,16 +977,11 @@ async function detenerScanner() {
 // CERRAR
 // =====================================================
 
-async function cerrarScanner() {
-
-  await detenerScanner();
+function cerrarScanner() {
 
 
-  /*
-   * Cuando abramos este lector
-   * desde el ERP podremos regresar
-   * automáticamente.
-   */
+  detenerCamara();
+
 
   if (
     window.history.length > 1
@@ -782,4 +998,5 @@ async function cerrarScanner() {
 
 
 </body>
+
 </html>
