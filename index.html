@@ -11,9 +11,10 @@
 
   <title>BEBES ERP - Escáner QR</title>
 
-  <!-- ==========================================
+
+  <!-- ==================================================
        MOTOR QR
-       ========================================== -->
+  =================================================== -->
 
   <script
     src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js">
@@ -161,9 +162,9 @@
     }
 
 
-    /* ==========================================
-       MARCO DEL ESCÁNER
-       ========================================== */
+    /* ================================================
+       MARCO
+    ================================================= */
 
     .marco {
 
@@ -450,11 +451,14 @@
 let stream =
   null;
 
+
 let escaneando =
   false;
 
+
 let codigoDetectado =
   false;
+
 
 let animationFrame =
   null;
@@ -550,6 +554,10 @@ async function iniciarCamara() {
     false;
 
 
+  resultado.style.display =
+    'none';
+
+
   estado.textContent =
     'Solicitando acceso a la cámara...';
 
@@ -573,7 +581,7 @@ async function iniciarCamara() {
 
 
     // =================================================
-    // SOLICITAR CÁMARA TRASERA
+    // CÁMARA TRASERA
     // =================================================
 
     stream =
@@ -582,18 +590,24 @@ async function iniciarCamara() {
         video: {
 
           facingMode: {
+
             ideal:
               'environment'
+
           },
 
           width: {
+
             ideal:
               1920
+
           },
 
           height: {
+
             ideal:
               1080
+
           }
 
         },
@@ -605,7 +619,7 @@ async function iniciarCamara() {
 
 
     // =================================================
-    // ASIGNAR STREAM
+    // ASIGNAR CÁMARA
     // =================================================
 
     video.srcObject =
@@ -641,7 +655,7 @@ async function iniciarCamara() {
 
 
     // =================================================
-    // COMENZAR LECTURA
+    // INICIAR LECTURA
     // =================================================
 
     escanearFrame();
@@ -733,7 +747,7 @@ function escanearFrame() {
 
 
   // =================================================
-  // USAR RESOLUCIÓN COMPLETA
+  // RESOLUCIÓN COMPLETA
   // =================================================
 
   canvas.width =
@@ -756,6 +770,10 @@ function escanearFrame() {
 
   );
 
+
+  // =================================================
+  // OBTENER PÍXELES
+  // =================================================
 
   const imagen =
     contexto.getImageData(
@@ -791,6 +809,10 @@ function escanearFrame() {
 
     );
 
+
+  // =================================================
+  // QR ENCONTRADO
+  // =================================================
 
   if (
     codigo &&
@@ -829,6 +851,10 @@ function escanearFrame() {
   }
 
 
+  // =================================================
+  // CONTINUAR
+  // =================================================
+
   animationFrame =
     requestAnimationFrame(
       escanearFrame
@@ -855,11 +881,17 @@ async function procesarQR(
   }
 
 
+  // =================================================
+  // LIMPIAR CÓDIGO
+  // =================================================
+
   const codigo =
     String(
       texto ||
       ''
-    ).trim();
+    )
+    .trim()
+    .toUpperCase();
 
 
   if (
@@ -871,9 +903,17 @@ async function procesarQR(
   }
 
 
+  // =================================================
+  // EVITAR DOBLE LECTURA
+  // =================================================
+
   codigoDetectado =
     true;
 
+
+  // =================================================
+  // MOSTRAR
+  // =================================================
 
   estado.textContent =
     '✅ Código QR detectado.';
@@ -888,11 +928,9 @@ async function procesarQR(
     codigo;
 
 
-  // =================================================
-  // DETENER
-  // =================================================
-
-  detenerCamara();
+  console.log(
+    '================================'
+  );
 
 
   console.log(
@@ -901,19 +939,197 @@ async function procesarQR(
   );
 
 
-  // =================================================
-  // AQUÍ DESPUÉS CONECTAREMOS CON BEBES ERP
-  // =================================================
-
-  setTimeout(
-    function() {
-
-      estado.textContent =
-        '✅ Código leído correctamente.';
-
-    },
-    500
+  console.log(
+    '================================'
   );
+
+
+  // =================================================
+  // DETENER CÁMARA
+  // =================================================
+
+  detenerCamara();
+
+
+  // =================================================
+  // ENVIAR QR A LA VENTANA QUE ABRIÓ EL ESCÁNER
+  // =================================================
+
+  enviarQRAlERP(
+    codigo
+  );
+
+}
+
+
+// =====================================================
+// ENVIAR QR
+// =====================================================
+
+function enviarQRAlERP(
+  codigo
+) {
+
+
+  codigo =
+    String(
+      codigo ||
+      ''
+    )
+    .trim()
+    .toUpperCase();
+
+
+  if (
+    !codigo
+  ) {
+
+    return;
+
+  }
+
+
+  console.log(
+    '================================'
+  );
+
+
+  console.log(
+    'ENVIANDO QR AL BEBES ERP'
+  );
+
+
+  console.log(
+    'CÓDIGO:',
+    codigo
+  );
+
+
+  console.log(
+    'OPENER:',
+    window.opener
+  );
+
+
+  console.log(
+    '================================'
+  );
+
+
+  // =================================================
+  // VERIFICAR VENTANA PADRE
+  // =================================================
+
+  if (
+    !window.opener ||
+    window.opener.closed
+  ) {
+
+    console.error(
+      '❌ No existe la ventana que abrió el escáner.'
+    );
+
+
+    estado.textContent =
+      '❌ No se pudo regresar el código al ERP.';
+
+
+    return;
+
+  }
+
+
+  // =================================================
+  // ENVIAR MENSAJE
+  // =================================================
+
+  try {
+
+
+    window.opener.postMessage(
+
+      {
+
+        tipo:
+          'QR_DETECTADO',
+
+        codigo:
+          codigo
+
+      },
+
+      '*'
+
+    );
+
+
+    console.log(
+      '================================'
+    );
+
+
+    console.log(
+      '✅ QR ENVIADO AL ERP'
+    );
+
+
+    console.log(
+      'CÓDIGO ENVIADO:',
+      codigo
+    );
+
+
+    console.log(
+      '================================'
+    );
+
+
+    estado.textContent =
+      '✅ Código enviado a BEBES ERP.';
+
+
+    // =================================================
+    // CERRAR ESCÁNER
+    // =================================================
+
+    setTimeout(
+      function() {
+
+        try {
+
+          window.close();
+
+        }
+
+        catch(error) {
+
+          console.warn(
+            'No se pudo cerrar automáticamente:',
+            error
+          );
+
+        }
+
+      },
+      800
+    );
+
+
+  }
+
+  catch(error) {
+
+
+    console.error(
+      '❌ ERROR ENVIANDO QR:',
+      error
+    );
+
+
+    estado.textContent =
+      '❌ No se pudo enviar el código al ERP.';
+
+  }
 
 }
 
@@ -929,6 +1145,10 @@ function detenerCamara() {
     false;
 
 
+  // =================================================
+  // DETENER ANIMATION FRAME
+  // =================================================
+
   if (
     animationFrame
   ) {
@@ -937,15 +1157,21 @@ function detenerCamara() {
       animationFrame
     );
 
+
     animationFrame =
       null;
 
   }
 
 
+  // =================================================
+  // DETENER STREAM
+  // =================================================
+
   if (
     stream
   ) {
+
 
     stream
       .getTracks()
@@ -957,11 +1183,16 @@ function detenerCamara() {
         }
       );
 
+
     stream =
       null;
 
   }
 
+
+  // =================================================
+  // LIMPIAR VIDEO
+  // =================================================
 
   video.srcObject =
     null;
@@ -983,15 +1214,75 @@ function cerrarScanner() {
   detenerCamara();
 
 
-  if (
-    window.history.length > 1
-  ) {
+  // =================================================
+  // INTENTAR CERRAR VENTANA
+  // =================================================
 
-    window.history.back();
+  try {
+
+    window.close();
 
   }
 
+  catch(error) {
+
+    console.warn(
+      'No se pudo cerrar la ventana:',
+      error
+    );
+
+  }
+
+
+  // =================================================
+  // SI NO PERMITE CERRAR
+  // =================================================
+
+  setTimeout(
+    function() {
+
+      if (
+        window.history.length > 1
+      ) {
+
+        window.history.back();
+
+      }
+
+    },
+    300
+  );
+
 }
+
+
+// =====================================================
+// INFORMACIÓN INICIAL
+// =====================================================
+
+console.log(
+  '================================'
+);
+
+
+console.log(
+  'BEBES ERP - SCANNER QR'
+);
+
+
+console.log(
+  'Motor: jsQR'
+);
+
+
+console.log(
+  'Comunicación: postMessage'
+);
+
+
+console.log(
+  '================================'
+);
 
 
 </script>
